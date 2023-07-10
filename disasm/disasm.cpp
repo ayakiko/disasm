@@ -233,6 +233,11 @@ unsigned long Instruction_base::Decode(unsigned char* memory) {
 			size = Instruction_push::Decode(memory);
 			break;
 		}
+		case Type::Call:
+		{
+			size = Instruction_call::Decode(memory);
+			break;
+		}
 	}
 
 	return size;
@@ -258,6 +263,11 @@ unsigned long Instruction_base::Encode(unsigned char* memory) {
 		case Type::Push:
 		{
 			size = Instruction_push::Encode(memory);
+			break;
+		}
+		case Type::Call:
+		{
+			size = Instruction_call::Encode(memory);
 			break;
 		}
 	}

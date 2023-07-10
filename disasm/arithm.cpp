@@ -26,7 +26,7 @@ unsigned long Instruction_mul::Encode(unsigned char* memory) {
 	return 1 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
 }
 
-unsigned long Instruction_mul::GetSize(unsigned char*) {
+unsigned long Instruction_mul::GetSize() {
 	return 1 + CalcModRM(this->modrm, this->sib);
 }
 
@@ -57,6 +57,6 @@ unsigned long Instruction_div::Encode(unsigned char* memory) {
 	return 1 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
 }
 
-unsigned long Instruction_div::GetSize(unsigned char*) {
+unsigned long Instruction_div::GetSize() {
 	return 1 + CalcModRM(this->modrm, this->sib);
 }

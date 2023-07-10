@@ -3,7 +3,7 @@
 struct Instruction_mul {
 	virtual unsigned long Decode(unsigned char *memory);
 	virtual unsigned long Encode(unsigned char* memory);
-	virtual unsigned long GetSize(unsigned char* memory);
+	virtual unsigned long GetSize();
 
 	static bool IsValid(unsigned char* memory);
 
@@ -15,7 +15,7 @@ struct Instruction_mul {
 struct Instruction_div {
 	virtual unsigned long Decode(unsigned char* memory);
 	virtual unsigned long Encode(unsigned char* memory);
-	virtual unsigned long GetSize(unsigned char* memory);
+	virtual unsigned long GetSize();
 
 	static bool IsValid(unsigned char* memory);
 

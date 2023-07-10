@@ -7,13 +7,14 @@
 
 struct Instruction_base :
 		Instruction_div, Instruction_mul,
-		Instruction_push
+		Instruction_push, Instruction_call
 {
 	enum Type {
 		Unk,
 		Mul,
 		Div,
-		Push
+		Push,
+		Call
 	};
 
 	Type GetType(unsigned char* memory);
