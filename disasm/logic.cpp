@@ -214,3 +214,135 @@ unsigned long Instruction_mov::GetSize() {
 	else
 		return 1;
 }
+
+bool Instruction_lea::IsValid(unsigned char* memory) {
+	return (memory[0] == 0x8D);
+}
+
+unsigned long Instruction_lea::Decode(unsigned char* memory) {
+	unsigned long size = 0;
+
+	if (memory[0] == 0x8D) {
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+		this->opcode = 0x8D;
+		this->modrm = memory[1];
+	}
+
+	return size;
+}
+
+/*
+	Commonly it use 32 bit displacement
+	Encode it to 64 bit offset
+*/
+
+unsigned long Instruction_lea::Encode(unsigned char* memory) {
+	memory[0] = this->opcode;
+	return 1 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
+}
+
+unsigned long Instruction_lea::GetSize() {
+	return 1 + CalcModRM(this->modrm, this->sib);
+}
+
+bool Instruction_xor::IsValid(unsigned char* memory) {
+	return (memory[0] >= 0x30 && memory[0] <= 0x35) ||
+			((memory[0] == 0x80 || memory[0] == 0x81 || memory[0] == 0x83) && (memory[1] & 0x38) == 0x30);
+}
+
+unsigned long Instruction_xor::Decode(unsigned char* memory) {
+	unsigned long size = 0;
+
+	if (memory[0] == 0x30 || memory[0] == 0x32) /* 8 bit r/m */
+	{
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+		this->opcode = memory[0];
+		this->modrm = memory[1];
+	}else if (memory[0] == 0x31 || memory[0] == 0x33) {
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+		this->opcode = memory[0];
+		this->modrm = memory[1];
+	}else if (memory[0] == 0x34) {
+		this->opcode = 0x34;
+		this->operand = (unsigned long)memory[1];
+
+		size = 1 + 1;
+	}else if (memory[0] == 0x35) {
+		this->opcode = 0x35;
+		this->operand = *(unsigned long*)&memory[1];
+
+		size = 1 + 4;
+	}else if ((memory[0] == 0x80 || memory[0] == 0x83) && (memory[1] & 0x38) == 0x30) {
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + 1 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+		this->opcode = memory[0];
+		this->modrm = memory[1];
+		this->operand = (unsigned long)memory[size - 1];
+	}else if ((memory[0] == 0x81) && (memory[1] & 0x38) == 0x30) {
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + 4 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+		this->opcode = memory[0];
+		this->modrm = memory[1];
+		this->operand = *(unsigned long*)&memory[size - 4];
+	}
+
+	return size;
+}
+
+unsigned long Instruction_xor::Encode(unsigned char* memory) {
+	unsigned long size = 1;
+
+	memory[0] = this->opcode;
+
+	if (this->opcode == 0x30 || this->opcode == 0x32 ||
+		this->opcode == 0x31 || this->opcode == 0x33) {
+		size += SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
+	}else if (this->opcode == 0x80 || this->opcode == 0x83) {
+		size += 1 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
+		memory[size - 1] = (unsigned char)this->operand;
+	}else if (this->opcode == 0x81) {
+		size += 4 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
+		*(unsigned long*)&memory[size - 4] = this->operand;
+	}else if (this->opcode == 0x34) {
+		memory[1] = (unsigned char)this->operand;
+		size += 1;
+	}else if (this->opcode == 0x35) {
+		*(unsigned long*)&memory[1] = this->operand;
+		size += 4;
+	}
+
+	return size;
+}
+
+unsigned long Instruction_xor::GetSize() {
+	if (this->opcode == 0x30 || this->opcode == 0x32 ||
+		this->opcode == 0x31 || this->opcode == 0x33) {
+		return 1 + CalcModRM(this->modrm, this->sib);
+	}else if (this->opcode == 0x80 || this->opcode == 0x83) {
+		return 1 + 1 + CalcModRM(this->modrm, this->sib);
+	}else if (this->opcode == 0x81) {
+		return 1 + 4 + CalcModRM(this->modrm, this->sib);
+	}else if (this->opcode == 0x35) {
+		return 1 + 4;
+	}
+
+	return 1 + 1;
+}

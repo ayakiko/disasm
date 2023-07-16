@@ -200,11 +200,24 @@ unsigned long CalcModRM(unsigned char modrm, unsigned char sib) {
 }
 
 Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
-	if ((memory[0] >= 0x40 && memory[0] <= 0x4F) || (memory[0] >= 0x64 && memory[0] <= 0x67)) {
-		this->prefix = memory[0];
+	if (memory[0] >= 0x40 && memory[0] <= 0x4F)
+	{
+		this->prefix1 = memory[0];
+		this->prefix2 = 0;
 		memory++;
-	}else
-		this->prefix = 0;
+	}else if (memory[0] >= 0x64 && memory[0] <= 0x67) {
+		this->prefix1 = memory[0];
+		memory++;
+
+		if (memory[0] >= 0x40 && memory[0] <= 0x4F) {
+			this->prefix2 = memory[0];
+			memory++;
+		}else
+			this->prefix2 = 0;
+	}else {
+		this->prefix1 = 0;
+		this->prefix2 = 0;
+	}
 
 	if (Instruction_push::IsValid(memory)) {
 		this->type = Type::Push;
@@ -214,6 +227,12 @@ Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
 		this->type = Type::Call;
 	}else if (Instruction_mov::IsValid(memory)) {
 		this->type = Type::Mov;
+	}else if (Instruction_lea::IsValid(memory)) {
+		this->type = Type::Lea;
+	}else if (Instruction_xor::IsValid(memory)) {
+		this->type = Type::Xor;
+	}else if (Instruction_sub::IsValid(memory)) {
+		this->type = Type::Sub;
 	}else if (Instruction_mul::IsValid(memory)) {
 		this->type = Type::Mul;
 	}else if (Instruction_div::IsValid(memory)) {
@@ -227,9 +246,14 @@ Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
 unsigned long Instruction_base::Decode(unsigned char* memory) {
 	unsigned long size = 0;
 
-	if (this->prefix) {
+	if (this->prefix1) {
 		memory++;
 		size++;
+
+		if (this->prefix2) {
+			memory++;
+			size++;
+		}
 	}
 
 	switch(this->type) {
@@ -254,6 +278,21 @@ unsigned long Instruction_base::Decode(unsigned char* memory) {
 			size += Instruction_mov::Decode(memory);
 			break;
 		}
+		case Type::Lea:
+		{
+			size += Instruction_lea::Decode(memory);
+			break;
+		}
+		case Type::Xor:
+		{
+			size += Instruction_xor::Decode(memory);
+			break;
+		}
+		case Type::Sub:
+		{
+			size += Instruction_sub::Decode(memory);
+			break;
+		}
 		case Type::Mul:
 		{
 			size += Instruction_mul::Decode(memory);
@@ -272,10 +311,16 @@ unsigned long Instruction_base::Decode(unsigned char* memory) {
 unsigned long Instruction_base::Encode(unsigned char* memory) {
 	unsigned long size = 0;
 
-	if (this->prefix) {
-		memory[0] = this->prefix;
+	if (this->prefix1) {
+		memory[0] = this->prefix1;
 		memory++;
 		size++;
+
+		if (this->prefix2) {
+			memory[0] = this->prefix2;
+			memory++;
+			size++;
+		}
 	}
 
 	switch(this->type) {
@@ -300,6 +345,21 @@ unsigned long Instruction_base::Encode(unsigned char* memory) {
 		case Type::Mov:
 		{
 			size += Instruction_mov::Encode(memory);
+			break;
+		}
+		case Type::Lea:
+		{
+			size += Instruction_lea::Encode(memory);
+			break;
+		}
+		case Type::Xor:
+		{
+			size += Instruction_xor::Encode(memory);
+			break;
+		}
+		case Type::Sub:
+		{
+			size += Instruction_sub::Encode(memory);
 			break;
 		}
 		case Type::Mul:

@@ -6,13 +6,16 @@
 #include "disasm\disasm.h"
 
 const char* test[] = {
-	"Unk",
-	"Push",
-	"Pop",
-	"Call",
-	"Mov", 
-	"Mul",
-	"Div"
+		"Unk",
+		"Push",
+		"Pop",
+		"Call",
+		"Mov",
+		"Lea",
+		"Xor",
+		"Sub",
+		"Mul",
+		"Div"
 };
 
 int main(int argc, char** argv) {
@@ -29,7 +32,7 @@ int main(int argc, char** argv) {
 		if (w.type != Instruction_base::Type::Unk) {
 			size = w.Decode(addr);
 			list.push_back(w);
-			printf("%x %d %s? %llx %llx\n", w.prefix, size, test[w.type], &main, addr);
+			printf("%x %s? %llx %x\n", w.prefix1, test[w.type], addr, *addr);
 		}
 
 		i += size - 1;

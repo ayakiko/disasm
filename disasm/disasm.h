@@ -8,14 +8,19 @@
 struct Instruction_base :
 		Instruction_push, Instruction_pop,
 		Instruction_call, Instruction_mov,
-		Instruction_mul, Instruction_div
+		Instruction_lea, Instruction_xor,
+		Instruction_mul, Instruction_div,
+		Instruction_sub
 {
 	enum Type {
 		Unk,
 		Push,
 		Pop,
 		Call,
-		Mov, 
+		Mov,
+		Lea,
+		Xor,
+		Sub,
 		Mul,
 		Div
 	};
@@ -25,7 +30,9 @@ struct Instruction_base :
 	virtual unsigned long Decode(unsigned char* memory);
 	virtual unsigned long Encode(unsigned char* memory);
 
-	unsigned char prefix = 0;
+	unsigned char prefix1 = 0;
+	unsigned char prefix2 = 0;
+	unsigned char prefix3 = 0;
 
 	Type type = Type::Unk;
 };
