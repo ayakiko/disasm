@@ -5,19 +5,46 @@
 
 #include "disasm\disasm.h"
 
-const char *test = "\xf7\xB4\x00\x00\x00\x00\x81\xf7\xA4\x00\x00\x00\x00\x81\xa4\xa4\x64\xf7\xA4\x00\x00\x00\x13\x12";
+const char* test[] = {
+	"Unk",
+	"Push",
+	"Pop",
+	"Call",
+	"Mov", 
+	"Mul",
+	"Div"
+};
 
 int main(int argc, char** argv) {
 	std::vector<Instruction_base> list;
 
 	Instruction_base w;
-	
-	w.GetType((unsigned char*)test);
-	w.Decode((unsigned char*)test);
 
-	if (w.type == Instruction_base::Type::Div) {
-		printf("div!\n");
+	for (int i = 0; i < 256; i++) {
+		unsigned long size = 1;
+		unsigned char* addr = (unsigned char*)(((unsigned long long)&main) + i);
+
+		w.GetType(addr);
+
+		if (w.type != Instruction_base::Type::Unk) {
+			size = w.Decode(addr);
+			list.push_back(w);
+			printf("%x %d %s? %llx %llx\n", w.prefix, size, test[w.type], &main, addr);
+		}
+
+		i += size - 1;
 	}
 
+	unsigned char* mem = (unsigned char*)malloc(512);
+	unsigned long size = 0;
+
+	for (auto e : list) {
+		size += e.Encode(&mem[size]);
+	}
+
+	printf("%llx\n", mem);
+
+	getchar();
+	free(mem);
 	return 0;
 }

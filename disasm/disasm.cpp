@@ -200,13 +200,26 @@ unsigned long CalcModRM(unsigned char modrm, unsigned char sib) {
 }
 
 Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
-	if (Instruction_mul::IsValid(memory)) {
+	if ((memory[0] >= 0x40 && memory[0] <= 0x4F) || (memory[0] >= 0x64 && memory[0] <= 0x67)) {
+		this->prefix = memory[0];
+		memory++;
+	}else
+		this->prefix = 0;
+
+	if (Instruction_push::IsValid(memory)) {
+		this->type = Type::Push;
+	}else if (Instruction_pop::IsValid(memory)) {
+		this->type = Type::Pop;
+	}else if (Instruction_call::IsValid(memory)) {
+		this->type = Type::Call;
+	}else if (Instruction_mov::IsValid(memory)) {
+		this->type = Type::Mov;
+	}else if (Instruction_mul::IsValid(memory)) {
 		this->type = Type::Mul;
 	}else if (Instruction_div::IsValid(memory)) {
 		this->type = Type::Div;
-	}else if (Instruction_push::IsValid(memory)) {
-		this->type = Type::Push;
-	}
+	}else
+		this->type = Type::Unk;
 
 	return this->type;
 }
@@ -214,28 +227,41 @@ Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
 unsigned long Instruction_base::Decode(unsigned char* memory) {
 	unsigned long size = 0;
 
+	if (this->prefix) {
+		memory++;
+		size++;
+	}
+
 	switch(this->type) {
-		case Type::Unk: {
-			break;
-		}
-		case Type::Mul:
-		{
-			size = Instruction_mul::Decode(memory);
-			break;
-		}
-		case Type::Div:
-		{
-			size = Instruction_div::Decode(memory);
-			break;
-		}
+		case Type::Unk: break;
 		case Type::Push:
 		{
-			size = Instruction_push::Decode(memory);
+			size += Instruction_push::Decode(memory);
+			break;
+		}
+		case Type::Pop:
+		{
+			size += Instruction_pop::Decode(memory);
 			break;
 		}
 		case Type::Call:
 		{
-			size = Instruction_call::Decode(memory);
+			size += Instruction_call::Decode(memory);
+			break;
+		}
+		case Type::Mov:
+		{
+			size += Instruction_mov::Decode(memory);
+			break;
+		}
+		case Type::Mul:
+		{
+			size += Instruction_mul::Decode(memory);
+			break;
+		}
+		case Type::Div:
+		{
+			size += Instruction_div::Decode(memory);
 			break;
 		}
 	}
@@ -246,28 +272,44 @@ unsigned long Instruction_base::Decode(unsigned char* memory) {
 unsigned long Instruction_base::Encode(unsigned char* memory) {
 	unsigned long size = 0;
 
+	if (this->prefix) {
+		memory[0] = this->prefix;
+		memory++;
+		size++;
+	}
+
 	switch(this->type) {
 		case Type::Unk: {
 			break;
 		}
-		case Type::Mul:
-		{
-			size = Instruction_mul::Encode(memory);
-			break;
-		}
-		case Type::Div:
-		{
-			size = Instruction_div::Encode(memory);
-			break;
-		}
 		case Type::Push:
 		{
-			size = Instruction_push::Encode(memory);
+			size += Instruction_push::Encode(memory);
+			break;
+		}
+		case Type::Pop:
+		{
+			size += Instruction_pop::Encode(memory);
 			break;
 		}
 		case Type::Call:
 		{
-			size = Instruction_call::Encode(memory);
+			size += Instruction_call::Encode(memory);
+			break;
+		}
+		case Type::Mov:
+		{
+			size += Instruction_mov::Encode(memory);
+			break;
+		}
+		case Type::Mul:
+		{
+			size += Instruction_mul::Encode(memory);
+			break;
+		}
+		case Type::Div:
+		{
+			size += Instruction_div::Encode(memory);
 			break;
 		}
 	}

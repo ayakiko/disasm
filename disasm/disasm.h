@@ -6,21 +6,26 @@
 #include "logic.h"
 
 struct Instruction_base :
-		Instruction_div, Instruction_mul,
-		Instruction_push, Instruction_call
+		Instruction_push, Instruction_pop,
+		Instruction_call, Instruction_mov,
+		Instruction_mul, Instruction_div
 {
 	enum Type {
 		Unk,
-		Mul,
-		Div,
 		Push,
-		Call
+		Pop,
+		Call,
+		Mov, 
+		Mul,
+		Div
 	};
 
 	Type GetType(unsigned char* memory);
 
 	virtual unsigned long Decode(unsigned char* memory);
 	virtual unsigned long Encode(unsigned char* memory);
+
+	unsigned char prefix = 0;
 
 	Type type = Type::Unk;
 };
