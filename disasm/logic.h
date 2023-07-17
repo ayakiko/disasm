@@ -58,6 +58,7 @@ struct Instruction_call {
 	unsigned char opcode	= 0;
 	unsigned char modrm		= 0;
 	unsigned char sib		= 0;
+	unsigned long disp32	= 0;
 	unsigned long long address = 0;
 };
 

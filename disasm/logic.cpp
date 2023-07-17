@@ -110,15 +110,88 @@ unsigned long Instruction_pop::GetSize() {
 }
 
 bool Instruction_call::IsValid(unsigned char* memory) {
-	return 0;
+	return ((memory[0] == 0xFF) && ((memory[1] & 0x38) == 0x10 || (memory[1] & 0x38) == 0x18)) ||
+			(memory[0] == 0xE8);
 }
 
 unsigned long Instruction_call::Decode(unsigned char* memory) {
-	return 0;
+	unsigned long size = 0;
+
+	if (memory[0] == 0xFF) {
+		unsigned char ext = (memory[1] & 0x38) >> 3;
+
+		if (ext == 2 || ext == 3) {
+			unsigned char mod = (memory[1] & 0xC0) >> 6;
+			unsigned char rm = memory[1] & 7;
+
+			size = 1 + GetModRMDisplacement(mod, rm, this->sib, this->disp32, &memory[2]);
+
+			unsigned char i = (this->sib & 0x38) >> 3;
+			unsigned char b = this->sib & 7;
+
+			if (rm == 5) {
+				//eip + disp32
+				this->address = ((unsigned long long)&memory[size]) + this->disp32;
+			}
+
+			this->opcode = memory[0];
+		}
+	}else if (memory[0] == 0xE8) {
+		size = 1 + 4;
+
+		this->opcode = memory[0];
+		this->address = ((unsigned long long)&memory[size]) + *(unsigned long*)&memory[1];
+	}
+
+	return size;
 }
 
 unsigned long Instruction_call::Encode(unsigned char* memory) {
-	return 0;
+	unsigned long size = 1;
+
+	memory[0] = this->opcode;
+
+	if (this->opcode == 0xFF) {
+		size += SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
+
+		unsigned char rm = this->modrm & 7;
+
+		if (rm == 5) {
+			signed long long offset = (signed long long)this->address - (((signed long long)&memory[0]) + size);
+
+			if (offset > 0x7fffffff || offset < 0x7fffffff) {
+				//call eip+2 jmp eip+8 address64
+
+				*(unsigned long*)&memory[2] = 1 + 4;
+				memory[6] = 0xE9;
+				*(unsigned long*)&memory[7] = 8;
+				*(unsigned long long*)&memory[11] = this->address;
+
+				printf("%llx\n", this->address);
+
+				size += 1 + 4 + 8;
+			}
+		}
+	}else if (this->opcode == 0xE8) {
+		signed long long offset = ((signed long long)this->address) - (((signed long long)&memory[0]) + 5);
+
+		if (offset > 0x7fffffff || offset < 0x7fffffff) {
+			//call eip+2 jmp eip+8 address64
+
+			*(unsigned short*)&memory[0] = 0x1DFF;
+			*(unsigned long*)&memory[2] = 1 + 4;
+			memory[6] = 0xE9;
+			*(unsigned long*)&memory[7] = 8;
+			*(unsigned long long*)&memory[11] = this->address;
+
+			size += 1 + 4 + 1 + 4 + 8;
+		}else {
+			*(unsigned long*)&memory[1] = offset;
+			size += 5;
+		}
+	}
+
+	return size;
 }
 
 unsigned long Instruction_call::GetSize() {

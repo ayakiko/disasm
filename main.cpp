@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
 	Instruction_base w;
 
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 512; i++) {
 		unsigned long size = 1;
 		unsigned char* addr = (unsigned char*)(((unsigned long long)&main) + i);
 
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 		i += size - 1;
 	}
 
-	unsigned char* mem = (unsigned char*)malloc(512);
+	unsigned char* mem = (unsigned char*)malloc(1024);
 	unsigned long size = 0;
 
 	for (auto e : list) {

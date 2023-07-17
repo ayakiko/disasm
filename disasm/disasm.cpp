@@ -34,6 +34,9 @@ unsigned long GetSibDisplacement(const unsigned char mod, unsigned char sib, uns
 unsigned long GetModRMDisplacement(unsigned char mod, unsigned char rm, unsigned char &sib, unsigned long &disp32, unsigned char* mem) {
 	unsigned long size = 0;
 
+	sib = 0;
+	disp32 = 0;
+
 	switch (mod) {
 		case 0:
 			if (rm == 4) {
