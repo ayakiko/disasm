@@ -94,7 +94,7 @@ unsigned long Instruction_sub::Encode(unsigned char* memory) {
 	return size;
 }
 
-unsigned long Instruction_sub::GetSize() {
+unsigned long Instruction_sub::GetSize(unsigned char* memory) {
 	if (this->opcode == 0x28 || this->opcode == 0x2A ||
 		this->opcode == 0x29 || this->opcode == 0x2B) {
 		return 1 + CalcModRM(this->modrm, this->sib);
@@ -121,7 +121,7 @@ unsigned long Instruction_mul::Encode(unsigned char* memory) {
 	return 0;
 }
 
-unsigned long Instruction_mul::GetSize() {
+unsigned long Instruction_mul::GetSize(unsigned char* memory) {
 	return 0;
 }
 
@@ -137,6 +137,6 @@ unsigned long Instruction_div::Encode(unsigned char* memory) {
 	return 0;
 }
 
-unsigned long Instruction_div::GetSize() {
+unsigned long Instruction_div::GetSize(unsigned char* memory) {
 	return 0;
 }

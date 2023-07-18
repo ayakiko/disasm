@@ -40,3 +40,5 @@ struct Instruction_base :
 unsigned long GetModRMDisplacement(unsigned char mod, unsigned char rm, unsigned char &sib, unsigned long &size, unsigned char *mem);
 unsigned long CalcModRM(unsigned char modrm, unsigned char sib);
 unsigned long SetModRM(unsigned char modrm, unsigned char sib, unsigned long disp32, unsigned char *mem);
+
+unsigned long CalcRegion(unsigned char *mem, unsigned long size);

@@ -18,36 +18,31 @@ const char* test[] = {
 		"Div"
 };
 
+//C7 44 24 28 FE FF FF FF
+
+unsigned char memory[] = {0xC7, 0x44, 0x24, 0x28, 0xFE, 0xFF, 0xFF, 0xFF};
+
 int main(int argc, char** argv) {
 	std::vector<Instruction_base> list;
 
 	Instruction_base w;
 
-	for (int i = 0; i < 512; i++) {
-		unsigned long size = 1;
-		unsigned char* addr = (unsigned char*)(((unsigned long long)&main) + i);
+	w.GetType(memory);
+	w.Decode(memory);
 
-		w.GetType(addr);
+	Instruction_mov& test = static_cast<Instruction_mov&>(w);
 
-		if (w.type != Instruction_base::Type::Unk) {
-			size = w.Decode(addr);
-			list.push_back(w);
-			printf("%x %s? %llx %x\n", w.prefix1, test[w.type], addr, *addr);
-		}
+	printf("modrm %x sib %x disp64 %llx\n", test.modrm, test.sib, test.disp64);
 
-		i += size - 1;
-	}
+	unsigned char* mem = (unsigned char*)malloc(256);
 
-	unsigned char* mem = (unsigned char*)malloc(1024);
-	unsigned long size = 0;
+	w.Encode(mem);
 
-	for (auto e : list) {
-		size += e.Encode(&mem[size]);
-	}
-
-	printf("%llx\n", mem);
+	printf("%llx %llx\n", &memory, mem);
 
 	getchar();
+
 	free(mem);
+
 	return 0;
 }

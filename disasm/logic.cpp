@@ -54,7 +54,7 @@ unsigned long Instruction_push::Encode(unsigned char* memory) {
 	return size;
 }
 
-unsigned long Instruction_push::GetSize() {
+unsigned long Instruction_push::GetSize(unsigned char* memory) {
 	if (this->opcode == 0xff) {
 		return 1 + CalcModRM(this->modrm, this->sib);
 	}else if (this->opcode == 0x6A) {
@@ -102,7 +102,7 @@ unsigned long Instruction_pop::Encode(unsigned char* memory) {
 	return size;
 }
 
-unsigned long Instruction_pop::GetSize() {
+unsigned long Instruction_pop::GetSize(unsigned char* memory) {
 	if (this->opcode == 0x8F)
 		return 1 + CalcModRM(this->modrm, this->sib);
 	else
@@ -159,7 +159,7 @@ unsigned long Instruction_call::Encode(unsigned char* memory) {
 		if (rm == 5) {
 			signed long long offset = (signed long long)this->address - (((signed long long)&memory[0]) + size);
 
-			if (offset > 0x7fffffff || offset < 0x7fffffff) {
+			if (offset > 0x7fffffff || offset < -0x7fffffff) {
 				//call eip+2 jmp eip+8 address64
 
 				*(unsigned long*)&memory[2] = 1 + 4;
@@ -175,7 +175,7 @@ unsigned long Instruction_call::Encode(unsigned char* memory) {
 	}else if (this->opcode == 0xE8) {
 		signed long long offset = ((signed long long)this->address) - (((signed long long)&memory[0]) + 5);
 
-		if (offset > 0x7fffffff || offset < 0x7fffffff) {
+		if (offset > 0x7fffffff || offset < -0x7fffffff) {
 			//call eip+2 jmp eip+8 address64
 
 			*(unsigned short*)&memory[0] = 0x1DFF;
@@ -194,8 +194,30 @@ unsigned long Instruction_call::Encode(unsigned char* memory) {
 	return size;
 }
 
-unsigned long Instruction_call::GetSize() {
-	return 0;
+unsigned long Instruction_call::GetSize(unsigned char* memory) {
+	unsigned long size = 1;
+
+	if (this->opcode == 0xFF) {
+		unsigned char rm = this->modrm & 7;
+		size += CalcModRM(this->modrm, this->sib);
+
+		if (rm == 5) {
+			signed long long offset = (signed long long)this->address - (((signed long long)&memory[0]) + size);
+
+
+			if (offset > 0x7fffffff || offset < -0x7fffffff)
+				size += 1 + 4 + 8;
+		}
+	}else {
+		signed long long offset = (signed long long)this->address - (((signed long long)&memory[0]) + 5);
+
+		if (offset > 0x7fffffff || offset < -0x7fffffff)
+			size += 1 + 4 + 1 + 4 + 8;
+		else
+			size += 4;
+	}
+
+	return size;
 }
 
 bool Instruction_mov::IsValid(unsigned char* memory) {
@@ -216,13 +238,25 @@ unsigned long Instruction_mov::Decode(unsigned char* memory) {
 	}else if (memory[0] >= 0xB8 && memory[0] <= 0xBF) {
 		this->opcode = memory[0];
 		size = 1;
-	}else if ((memory[0] == 0xC6) || (memory[0] == 0xC7)) {
-		unsigned long mod = (memory[1] & 0xC0) >> 6;
-		unsigned long rm = memory[1] & 7;
-
-		size = 1 + GetModRMDisplacement(mod, rm, this->sib, (unsigned long&)this->disp64, &memory[2]);
-
+	}else if (memory[0] == 0xC6 && (memory[1] & 0x38) == 0) {
 		this->opcode = memory[0];
+
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + 1 + GetModRMDisplacement(mod, rm, this->sib, (unsigned long&)this->disp64, &memory[2]);
+
+		this->operand = memory[size - 1];
+		this->modrm = memory[1];
+	}else if (memory[0] == 0xC7 && (memory[1] & 0x38) == 0) {
+		this->opcode = memory[0];
+
+		unsigned char mod = (memory[1] & 0xC0) >> 6;
+		unsigned char rm = memory[1] & 7;
+
+		size = 1 + 4 + GetModRMDisplacement(mod, rm, this->sib, (unsigned long&)this->disp64, &memory[2]);
+
+		this->operand = *(unsigned long*)&memory[size - 4];
 		this->modrm = memory[1];
 	}else if (memory[0] == 0xA0 || memory[0] == 0xA2) {
 		this->opcode = memory[0];
@@ -270,12 +304,18 @@ unsigned long Instruction_mov::Encode(unsigned char* memory) {
 		size += SetModRM(this->modrm, this->sib, (unsigned long)this->disp64, &memory[1]); //MOV 8/16/32 (ModRM, Sib)
 	}else if (this->opcode == 0x8C || this->opcode == 0x8E) {
 		size += SetModRM(this->modrm, this->sib, (unsigned long)this->disp64, &memory[1]); //SREG 16 (Sib)
+	}else if (this->opcode == 0xC6) {
+		size += 1 + SetModRM(this->modrm, this->sib, (unsigned long)this->disp64, &memory[1]);
+		memory[size - 1] = this->operand;
+	}else if (this->opcode == 0xC7) {
+		size += 4 + SetModRM(this->modrm, this->sib, (unsigned long)this->disp64, &memory[1]);
+		*(unsigned long*)&memory[size - 4] = this->operand;
 	}
 
 	return size;
 }
 
-unsigned long Instruction_mov::GetSize() {
+unsigned long Instruction_mov::GetSize(unsigned char* memory) {
 	if (this->opcode == 0xA0 || this->opcode == 0xA2)
 		return 1 + 1;
 	else if (this->opcode == 0xA1 || this->opcode == 0xA3)
@@ -284,6 +324,10 @@ unsigned long Instruction_mov::GetSize() {
 		return 1 + CalcModRM(this->modrm, this->sib);
 	else if (this->opcode == 0x8C || this->opcode == 0x8E)
 		return 1 + CalcModRM(this->modrm, this->sib);
+	else if (this->opcode == 0xC6)
+		return 1 + 1 + CalcModRM(this->modrm, this->sib);
+	else if (this->opcode == 0xC7)
+		return 1 + 4 + CalcModRM(this->modrm, this->sib);
 	else
 		return 1;
 }
@@ -318,7 +362,7 @@ unsigned long Instruction_lea::Encode(unsigned char* memory) {
 	return 1 + SetModRM(this->modrm, this->sib, this->disp32, &memory[1]);
 }
 
-unsigned long Instruction_lea::GetSize() {
+unsigned long Instruction_lea::GetSize(unsigned char* memory) {
 	return 1 + CalcModRM(this->modrm, this->sib);
 }
 
@@ -405,7 +449,7 @@ unsigned long Instruction_xor::Encode(unsigned char* memory) {
 	return size;
 }
 
-unsigned long Instruction_xor::GetSize() {
+unsigned long Instruction_xor::GetSize(unsigned char* memory) {
 	if (this->opcode == 0x30 || this->opcode == 0x32 ||
 		this->opcode == 0x31 || this->opcode == 0x33) {
 		return 1 + CalcModRM(this->modrm, this->sib);

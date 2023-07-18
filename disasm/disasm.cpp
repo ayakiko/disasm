@@ -202,6 +202,28 @@ unsigned long CalcModRM(unsigned char modrm, unsigned char sib) {
 	return size;
 }
 
+unsigned long CalcRegion(unsigned char *mem, unsigned long size) {
+	Instruction_base check;
+
+	unsigned long rgSz = 0;
+
+	for (int i = 0; i < size; i++) {
+		unsigned long length = 0;
+
+		check.GetType(&mem[i]);
+
+		if (check.type != Instruction_base::Type::Unk) {
+			length = check.Decode(&mem[i]);
+			i += length - 1;
+			rgSz += length;
+		}else {
+			rgSz++;
+		}
+	}
+
+	return rgSz;
+}
+
 Instruction_base::Type Instruction_base::GetType(unsigned char* memory) {
 	if (memory[0] >= 0x40 && memory[0] <= 0x4F)
 	{
